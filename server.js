@@ -11,15 +11,22 @@ app.use(bodyParser.json());
 
 const db = new sqlite3.Database(':memory:');
 
-db.serialize(() =>{
-    db.run('Create Table users (id Integer primary key autoincrement, name text, email text)')
-});
+db.serialize(() => {
+    db.run('DROP TABLE IF EXISTS users'); // Drop the table if it exists to start fresh
+    db.run('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, storeID TEXT)', () => {
+    db.run('INSERT INTO users (name, email, storeID) VALUES (?, ?, ?)', ['John Doe', 'john@example.com', 'accountID']);
+    });
+  });
+
 // Create a new user
 // curl -X POST http://localhost:4242/users -H "Content-Type: application/json" -d '{"name":"John Doe","email":"john@example.com","storeID":"accountID"}'
 
 app.post('/users', (req, res) => {
     const { name, email, storeID } = req.body;
-    db.run('INSERT INTO users (name, email) VALUES (?, ?)', [name, email, storeID], function (err) {
+    if (!name || !email || !storeID) {
+      return res.status(400).json({ error: "Please provide name, email, and storeID" });
+    }
+    db.run('INSERT INTO users (name, email, storeID) VALUES (?, ?, ?)', [name, email, storeID], function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
@@ -53,19 +60,18 @@ app.post('/users', (req, res) => {
   });
   
   // Update a user by ID
-  // curl -X PUT http://localhost:4242/users/1 -H "Content-Type: application/json" -d '{"name":"Jane Doe","email":"jane@example.com"}'
+  // curl -X PUT http://localhost:4242/users/1 -H "Content-Type: application/json" -d '{"name":"Jane Doe","email":"jane@example.com", "storeID":"storeid"}'
 
   app.put('/users/:id', (req, res) => {
     const { id } = req.params;
-    const { name, email } = req.body;
-    db.run('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id], function (err) {
+    const { name, email, storeID } = req.body;
+    db.run('UPDATE users SET name = ?, email = ?, storeID = ? WHERE id = ?', [name, email, storeID, id], function (err) {
       if (err) {
         return res.status(500).json({ error: err.message });
       }
       res.json({ changedRows: this.changes });
     });
   });
-  
   // Delete a user by ID
   // curl -X DELETE http://localhost:4242/users/1
 
@@ -79,7 +85,9 @@ app.post('/users', (req, res) => {
     });
   });
   
-const stripe = require("stripe")(
+
+
+  const stripe = require("stripe")(
   // This is your test secret API key.
   "sk_test_51PNQggKVH5eLCsVpBp7cYHZSEif0JLfzFGSVlELXnMTWrnZLpoTN4UBBZRWNLJQujcA6AsRL2SYqkkDoohZyGpMf00sGpJZdzK",
   {
