@@ -8,9 +8,10 @@ app.use(bodyParser.json());
 const db = new sqlite3.Database(':memory:');
 
 db.serialize(() => {
-    db.run('DROP TABLE IF EXISTS vender'); // Drop the table if it exists to start fresh
-    db.run('CREATE TABLE vender (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, storeID TEXT)', () => {
-        db.run('INSERT INTO vender (name, email, storeID) VALUES (?, ?, ?)', ['Jane Doe', 'jane@example.com', 'storeID']);
+    db.run('DROP TABLE IF EXISTS vender');
+    // table has KEY, name, location, CREATE products table for products, amount, price, storeID 
+    db.run('CREATE TABLE vender (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location TEXT, products TEXT, amount INTEGER, price INTEGER, storeID INTEGER)', () => {
+        db.run('INSERT INTO vender (name, location, products, amount, price, storeID) VALUES (?, ?, ?, ?, ?, ?)', ['Brocks Bananas','Seattle,WA', 'Bananas', '12', '2.99','123456789' ]);
     });
 });
 
@@ -19,7 +20,7 @@ app.post('/vender', (req, res) => {
     if (!name || !email || !storeID) {
         return res.status(400).json({ error: "Please provide name, email, and storeID" });
     }
-    db.run('INSERT INTO vender (name, email, storeID) VALUES (?, ?, ?)', [name, email, storeID], function (err) {
+    db.run('INSERT INTO vender (name, location, products, amount, price, storeID) VALUES (?, ?, ?, ?, ?, ?)', [name, location, products, amount, price, storeID ], function (err) {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
