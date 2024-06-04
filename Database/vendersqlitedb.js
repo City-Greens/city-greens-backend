@@ -49,8 +49,8 @@ app.get('/vender/:id', (req, res) => {
 
 app.put('/vender/:id', (req, res) => {
     const { id } = req.params;
-    const { name, email, storeID } = req.body;
-    db.run('UPDATE vender SET name = ?, email = ?, storeID = ? WHERE id = ?', [name, email, storeID, id], function (err) {
+    const { name, location, products, amount, price, storeID } = req.body;
+    db.run('UPDATE vender SET name = ?, location = ?, products = ?, amount = ?, price = ?, storeID = ? WHERE id = ?', [name, location, products, amount, price, storeID, id], function (err) {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
