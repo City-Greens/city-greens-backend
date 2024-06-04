@@ -2,8 +2,8 @@ const cors = require("cors");
 const express = require("express");
 const app = express();
 const port = 4242;
-const buyerRoutes = require('./Database/buyersqlitedb');
-const venderRoutes = require('./Database/vendersqlitedb');
+const buyerRoutes = require('./DB_Buyer/buyersqlitedb');
+const venderRoutes = require('./DB_Vender/vendersqlitedb');
 
 app.use(cors());
 app.use(buyerRoutes);
