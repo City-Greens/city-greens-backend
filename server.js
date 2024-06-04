@@ -1,91 +1,13 @@
 const cors = require("cors");
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
-const bodyParser = require("body-parser");
 const app = express();
 const port = 4242;
+const buyerRoutes = require('./Database/buyersqlitedb');
+const venderRoutes = require('./Database/vendersqlitedb');
+
 app.use(cors());
-
-// sqlite mid ware here
-app.use(bodyParser.json());
-
-const db = new sqlite3.Database(':memory:');
-
-db.serialize(() => {
-    db.run('DROP TABLE IF EXISTS users'); // Drop the table if it exists to start fresh
-    db.run('CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, storeID TEXT)', () => {
-    db.run('INSERT INTO users (name, email, storeID) VALUES (?, ?, ?)', ['John Doe', 'john@example.com', 'accountID']);
-    });
-  });
-
-// Create a new user
-// curl -X POST http://localhost:4242/users -H "Content-Type: application/json" -d '{"name":"John Doe","email":"john@example.com","storeID":"accountID"}'
-
-app.post('/users', (req, res) => {
-    const { name, email, storeID } = req.body;
-    if (!name || !email || !storeID) {
-      return res.status(400).json({ error: "Please provide name, email, and storeID" });
-    }
-    db.run('INSERT INTO users (name, email, storeID) VALUES (?, ?, ?)', [name, email, storeID], function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ id: this.lastID });
-    });
-  });
-  
-  // Get all users
-  // curl http://localhost:4242/users
-
-  app.get('/users', (req, res) => {
-    db.all('SELECT * FROM users', [], (err, rows) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ users: rows });
-    });
-  });
-  
-  // Get a single user by ID
-  // curl http://localhost:4242/users/1
-
-  app.get('/users/:id', (req, res) => {
-    const { id } = req.params;
-    db.get('SELECT * FROM users WHERE id = ?', [id], (err, row) => {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ user: row });
-    });
-  });
-  
-  // Update a user by ID
-  // curl -X PUT http://localhost:4242/users/1 -H "Content-Type: application/json" -d '{"name":"Jane Doe","email":"jane@example.com", "storeID":"storeid"}'
-
-  app.put('/users/:id', (req, res) => {
-    const { id } = req.params;
-    const { name, email, storeID } = req.body;
-    db.run('UPDATE users SET name = ?, email = ?, storeID = ? WHERE id = ?', [name, email, storeID, id], function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ changedRows: this.changes });
-    });
-  });
-  // Delete a user by ID
-  // curl -X DELETE http://localhost:4242/users/1
-
-  app.delete('/users/:id', (req, res) => {
-    const { id } = req.params;
-    db.run('DELETE FROM users WHERE id = ?', [id], function (err) {
-      if (err) {
-        return res.status(500).json({ error: err.message });
-      }
-      res.json({ deletedRows: this.changes });
-    });
-  });
-  
-
+app.use(buyerRoutes);
+app.use(venderRoutes);
 
   const stripe = require("stripe")(
   // This is your test secret API key.
