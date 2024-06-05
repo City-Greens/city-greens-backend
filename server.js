@@ -56,10 +56,17 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
+app.post("/add-product", async (req, res) => {
+  const product = req.body;
+
+  console.log(product);
+});
+
 app.post("/get-products", async (req, res) => {
   const id = req.body.id;
 
   try {
+    // Fetch the products
     const products = await stripe.products.list(
       {
         limit: 100,
@@ -68,7 +75,26 @@ app.post("/get-products", async (req, res) => {
         stripeAccount: id,
       },
     );
-    res.send(products.data);
+
+    // Function to fetch price details for a given price ID
+    async function fetchPriceDetails(priceId) {
+      const price = await stripe.prices.retrieve(priceId, {
+        stripeAccount: id,
+      });
+      return price;
+    }
+
+    // Fetch price details for each product and add formatted price
+    const productsWithPrices = await Promise.all(
+      products.data.map(async (product) => {
+        const priceDetails = await fetchPriceDetails(product.default_price);
+        return {
+          ...product,
+          price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+        };
+      }),
+    );
+    res.send(productsWithPrices);
   } catch (error) {
     console.error("Error fetching products:", error);
     res.status(500).send({ error: "Failed to fetch products" });
