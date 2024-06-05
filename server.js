@@ -37,8 +37,8 @@ app.post("/account_link", async (req, res) => {
 
     const accountLink = await stripe.accountLinks.create({
       account: account,
-      return_url: `${req.headers.origin}/temp/return/${account}`,
-      refresh_url: `${req.headers.origin}/temp/refresh/${account}`,
+      return_url: `${req.headers.origin}/profile`,
+      refresh_url: `${req.headers.origin}/profile`,
       type: "account_onboarding",
       collection_options: {
         fields: "eventually_due",
@@ -57,10 +57,8 @@ app.post("/account_link", async (req, res) => {
 });
 
 app.post("/get-account", async (req, res) => {
-  console.log(req.body.accountID);
   try {
     const account = await stripe.accounts.retrieve(req.body.accountID);
-    console.log("account", account);
     res.send(account);
   } catch (error) {
     console.error(
@@ -123,6 +121,7 @@ app.post("/account", async (req, res) => {
     res.send({ error: error.message });
   }
 });
+
 app.get("/*", (_req, res) => {
   res.sendFile(__dirname + "/dist/index.html");
 });
