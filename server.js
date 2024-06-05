@@ -3,24 +3,14 @@ const express = require("express");
 const app = express();
 const port = 4242;
 
-const buyerRoutes = require('./DB_Buyer/buyersqlitedb');
-const venderRoutes = require('./DB_Vender/vendersqlitedb');
-const productsRoutes = require('./DB_Vender/productssqlitedb');
-// ADD a vendor 
-// curl -X POST http://localhost:4242/vender -H "Content-Type: application/json" -d '{"name":"John\'s Fresh Produce", "location":"San Francisco, CA", "storeID": "987654321"}'
-
-// ADD a new product associated with the vendor
-// curl -X POST http://localhost:4242/products -H "Content-Type: application/json" -d '{"name":"Apples", "amount":100, "price":1.50, "venderID":1}'
-
-// SHOW the vendor table with nested products
-// curl http://localhost:4242/vender
-
+const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
+const venderRoutes = require("./DB_Vender/vendersqlitedb");
+const productsRoutes = require("./DB_Vender/productssqlitedb");
 
 app.use(cors());
 app.use(buyerRoutes);
 app.use(venderRoutes);
 app.use(productsRoutes);
-
 
 const stripe = require("stripe")(
   // This is your test secret API key.
@@ -34,15 +24,17 @@ app.use(express.static("dist"));
 app.use(express.json());
 
 app.post("/account_link", async (req, res) => {
-  console.log("req.body", req.body);
   try {
     const { account } = req.body;
 
     const accountLink = await stripe.accountLinks.create({
       account: account,
-      return_url: `${req.headers.origin}/temp/return/${account}`,
-      refresh_url: `${req.headers.origin}/temp/refresh/${account}`,
+      return_url: `${req.headers.origin}/profile`,
+      refresh_url: `${req.headers.origin}/profile`,
       type: "account_onboarding",
+      collection_options: {
+        fields: "eventually_due",
+      },
     });
 
     res.json(accountLink);
@@ -56,9 +48,29 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
+app.get("/get-products", async (req, res) =>{
+  const products = await stripe.products.list({
+    limit: 100,
+  })
+  res.send(product.data);
+});
+
+app.post("/get-account", async (req, res) => {
+  try {
+    const account = await stripe.accounts.retrieve(req.body.accountID);
+    res.send(account);
+  } catch (error) {
+    console.error(
+      "An error occurred when calling the Stripe API to retrieve an account",
+      error,
+    );
+    res.status(500);
+    res.send({ error: error.message });
+  }
+});
+
 app.post("/account", async (req, res) => {
   let accountData = req.body;
-  console.log("account", accountData);
   let dob = accountData.individual.dob.split("-");
 
   try {
@@ -108,6 +120,7 @@ app.post("/account", async (req, res) => {
     res.send({ error: error.message });
   }
 });
+
 app.get("/*", (_req, res) => {
   res.sendFile(__dirname + "/dist/index.html");
 });
