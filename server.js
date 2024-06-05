@@ -56,11 +56,23 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
-app.get("/get-products", async (req, res) =>{
-  const products = await stripe.products.list({
-    limit: 100,
-  })
-  res.send(product.data);
+app.post("/get-products", async (req, res) => {
+  const id = req.body.id;
+
+  try {
+    const products = await stripe.products.list(
+      {
+        limit: 100,
+      },
+      {
+        stripeAccount: id,
+      },
+    );
+    res.send(products.data);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    res.status(500).send({ error: "Failed to fetch products" });
+  }
 });
 
 app.post("/get-account", async (req, res) => {
