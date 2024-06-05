@@ -56,6 +56,13 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
+app.get("/get-products", async (req, res) =>{
+  const products = await stripe.products.list({
+    limit: 100,
+  })
+  res.send(product.data);
+});
+
 app.post("/get-account", async (req, res) => {
   try {
     const account = await stripe.accounts.retrieve(req.body.accountID);

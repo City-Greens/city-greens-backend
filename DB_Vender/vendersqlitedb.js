@@ -10,8 +10,8 @@ const db = new sqlite3.Database(':memory:');
 db.serialize(() => {
     db.run('DROP TABLE IF EXISTS vender');
     db.run('DROP TABLE IF EXISTS products');
-    db.run('CREATE TABLE vender (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, location TEXT, storeID INTEGER)', () => {
-        db.run('INSERT INTO vender (name, location, storeID) VALUES (?, ?, ?)', ['Brocks Bananas', 'Seattle, WA', 123456789]);
+    db.run('CREATE TABLE vender (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, image TEXT, address TEXT, description TEXT, email TEXT, phone_number TEXT)', () => {
+        db.run('INSERT INTO vender (name, image, address, description, email, phone_number) VALUES (?, ?, ?, ?, ?, ?)', ['Brocks Bananas', 'image_url', '123 Banana Street, Seattle, WA', 'Best bananas in town', 'contact@brocksbananas.com', '123-456-7890']);
     });
 
     db.run('CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, amount INTEGER, price REAL, venderID INTEGER, FOREIGN KEY(venderID) REFERENCES vender(id))', () => {
@@ -20,11 +20,11 @@ db.serialize(() => {
 });
 
 app.post('/vender', (req, res) => {
-    const { name, location, storeID } = req.body;
-    if (!name || !location || !storeID) {
-        return res.status(400).json({ error: "Please provide name, location, and storeID" });
+    const { name, image, address, description, email, phone_number } = req.body;
+    if (!name || !address || !email || !phone_number) {
+        return res.status(400).json({ error: "Please provide name, image, address, description, email, and phone_number" });
     }
-    db.run('INSERT INTO vender (name, location, storeID) VALUES (?, ?, ?)', [name, location, storeID], function (err) {
+    db.run('INSERT INTO vender (name, image, address, description, email, phone_number) VALUES (?, ?, ?, ?, ?, ?)', [name, image, address, description, email, phone_number], function (err) {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
@@ -79,8 +79,8 @@ app.get('/vender/:id', (req, res) => {
 
 app.put('/vender/:id', (req, res) => {
     const { id } = req.params;
-    const { name, location, storeID } = req.body;
-    db.run('UPDATE vender SET name = ?, location = ?, storeID = ? WHERE id = ?', [name, location, storeID, id], function (err) {
+    const { name, image, address, description, email, phone_number } = req.body;
+    db.run('UPDATE vender SET name = ?, image = ?, address = ?, description = ?, email = ?, phone_number = ? WHERE id = ?', [name, image, address, description, email, phone_number, id], function (err) {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
