@@ -1,45 +1,88 @@
 const request = require('supertest');
-const server = require('../server');
+const app = require('../server');  // Adjust the path as needed
 
-describe('Venders', () => {
-    beforeAll((done) => {
-        // Add any setup required before tests run
+let server;
+
+beforeAll(done => {
+    // Start the server before running the tests
+    server = app.listen(4242, () => {
+        console.log('Node server listening on port 4242! Visit http://localhost:4242 in your browser.');
         done();
     });
+});
 
-    it('should list ALL venders on /vender GET', async () => {
-        const res = await request(server).get('/vender');
-        expect(res.status).toBe(200);
-        expect(res.body).toHaveProperty('vendors');
-        expect(Array.isArray(res.body.vendors)).toBe(true);
-    });
+afterAll(done => {
+    server.close(done);
+});
 
-    it('should add a SINGLE vender on /vender POST', async () => {
-        const res = await request(server)
+describe('Vendor API', () => {
+
+    it('should create a new vendor', async () => {
+        const newVendor = {
+            name: "Test Vendor",
+            image: "http://example.com/image.jpg",
+            address: "123 Test Street, Test City, TC",
+            description: "Test description",
+            email: "test@example.com",
+            phone_number: "123-456-7890"
+        };
+
+        const res = await request(app)
             .post('/vender')
-            .send({ name: 'Fresh Fruits', location: 'Los Angeles, CA', storeID: 'storeID987' });
-        expect(res.status).toBe(200);
+            .send(newVendor);
+
+        expect(res.statusCode).toEqual(200);
         expect(res.body).toHaveProperty('id');
     });
 
-    it('should list a SINGLE vender on /vender/:id GET', async () => {
-        const res = await request(server).get('/vender/1');
-        expect(res.status).toBe(200);
+    it('should get all vendors with their products', async () => {
+        const res = await request(app)
+            .get('/vender')
+            .send();
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('vendors');
+        expect(Array.isArray(res.body.vendors)).toBeTruthy();
+    });
+
+    it('should get a specific vendor by ID', async () => {
+        const vendorId = 1;
+        const res = await request(app)
+            .get(`/vender/${vendorId}`)
+            .send();
+
+        expect(res.statusCode).toEqual(200);
         expect(res.body).toHaveProperty('vendor');
-        expect(res.body.vendor).toHaveProperty('id');
+        expect(res.body.vendor).toHaveProperty('id', vendorId);
     });
 
-    it('should update a SINGLE vender on /vender/:id PUT', async () => {
-        const res = await request(server)
-            .put('/vender/1')
-            .send({ name: 'Organic Fruits', location: 'San Diego, CA', storeID: 'storeID654' });
-        expect(res.status).toBe(200);
-        expect(res.body).toHaveProperty('changedRows');
+    it('should update a vendor\'s details', async () => {
+        const vendorId = 1;
+        const updatedVendor = {
+            name: "Updated Vendor",
+            image: "http://example.com/newimage.jpg",
+            address: "456 New Street, New City, NC",
+            description: "Updated description",
+            email: "new@example.com",
+            phone_number: "987-654-3210"
+        };
+
+        const res = await request(app)
+            .put(`/vender/${vendorId}`)
+            .send(updatedVendor);
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('changedRows', 1);
     });
 
-    it('should delete a SINGLE vender on /vender/:id DELETE', async () => {
-        const res = await request(server).delete('/vender/1');
-        expect(res.status).toBe(200);
-        expect(res.body).toHaveProperty('deletedRows');
+    it('should delete a vendor', async () => {
+        const vendorId = 1;
+        const res = await request(app)
+            .delete(`/vender/${vendorId}`)
+            .send();
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body).toHaveProperty('deletedRows', 1);
     });
+
 });

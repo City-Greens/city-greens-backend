@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest mocha test --coverage --verbose",
+    "test": "jest test --coverage --verbose",
     "dev": "nodemon server.js"
   },
   "keywords": [],

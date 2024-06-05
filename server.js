@@ -6,14 +6,6 @@ const port = 4242;
 const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
 const venderRoutes = require("./DB_Vender/vendersqlitedb");
 const productsRoutes = require("./DB_Vender/productssqlitedb");
-// ADD a vendor
-// curl -X POST http://localhost:4242/vender -H "Content-Type: application/json" -d '{"name":"John\'s Fresh Produce", "location":"San Francisco, CA", "storeID": "987654321"}'
-
-// ADD a new product associated with the vendor
-// curl -X POST http://localhost:4242/products -H "Content-Type: application/json" -d '{"name":"Apples", "amount":100, "price":1.50, "venderID":1}'
-
-// SHOW the vendor table with nested products
-// curl http://localhost:4242/vender
 
 app.use(cors());
 app.use(buyerRoutes);
