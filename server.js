@@ -115,10 +115,65 @@ app.post("/get-account", async (req, res) => {
   }
 });
 
-app.post("/account", async (req, res) => {
-  let accountData = req.body;
-  let dob = accountData.individual.dob.split("-");
+app.post("/checkout-session", async (req, res) => {
+  const { line_items, customer_id } = req.body;
+  console.log(line_items, customer_id);
 
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: line_items,
+      mode: "payment",
+      success_url: `${req.headers.origin}/success`,
+      return_url: `${req.headers.origin}/return`,
+    });
+
+    console.log("session", session);
+
+    res.json({ session });
+  } catch (error) {
+    res.status(500).send({ error: error.message });
+  }
+});
+
+app.get("/all-products", async (req, res) => {
+  try {
+    const accountsResponse = await stripe.accounts.list({ limit: 100 });
+    const accounts = accountsResponse.data;
+
+    const allProducts = await Promise.all(
+      accounts.map(async (account) => {
+        const productsResponse = await stripe.products.list(
+          { limit: 100 },
+          { stripeAccount: account.id },
+        );
+
+        const productsWithPrices = await Promise.all(
+          productsResponse.data.map(async (product) => {
+            const priceDetails = await stripe.prices.retrieve(
+              product.default_price,
+              { stripeAccount: account.id },
+            );
+            return {
+              ...product,
+              price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+            };
+          }),
+        );
+
+        return productsWithPrices;
+      }),
+    );
+
+    const flattenedProducts = allProducts.flat();
+    res.json(flattenedProducts);
+  } catch (error) {
+    console.error("Error fetching products or prices:", error);
+    res.status(500).json({ error: "Failed to fetch products or prices" });
+  }
+});
+
+app.post("/account", async (req, res) => {
   try {
     const account = await stripe.accounts.create({
       business_type: "individual",
