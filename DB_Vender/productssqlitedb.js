@@ -60,4 +60,4 @@ app.delete('/products/:id', (req, res) => {
     });
 });
 
-module.exports = app;
+module.exports = { app, db };

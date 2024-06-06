@@ -3,22 +3,28 @@ const express = require("express");
 const app = express();
 const port = 4242;
 
-const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
-const venderRoutes = require("./DB_Vender/vendersqlitedb");
-const productsRoutes = require("./DB_Vender/productssqlitedb");
-// ADD a vendor
-// curl -X POST http://localhost:4242/vender -H "Content-Type: application/json" -d '{"name":"John\'s Fresh Produce", "location":"San Francisco, CA", "storeID": "987654321"}'
+// const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
+// const cartRoutes = require("./DB_Buyer/cartsqlitedb");
+// const venderRoutes = require("./DB_Vender/vendersqlitedb");
+// const productsRoutes = require("./DB_Vender/productssqlitedb");
 
-// ADD a new product associated with the vendor
-// curl -X POST http://localhost:4242/products -H "Content-Type: application/json" -d '{"name":"Apples", "amount":100, "price":1.50, "venderID":1}'
+// app.use(buyerRoutes);
+// app.use(cartRoutes);
+// app.use(venderRoutes);
+// app.use(productsRoutes);
 
-// SHOW the vendor table with nested products
-// curl http://localhost:4242/vender
+
+const { app: buyerApp } = require("./DB_Buyer/buyersqlitedb");
+const { app: cartApp } = require("./DB_Buyer/cartsqlitedb");
+const { app: venderApp } = require("./DB_Vender/vendersqlitedb");
+const { app: productsApp } = require("./DB_Vender/productssqlitedb");
 
 app.use(cors());
-app.use(buyerRoutes);
-app.use(venderRoutes);
-app.use(productsRoutes);
+app.use(buyerApp);
+app.use(cartApp);
+app.use(venderApp);
+app.use(productsApp);
+
 
 const stripe = require("stripe")(
   // This is your test secret API key.
