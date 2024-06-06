@@ -3,16 +3,28 @@ const express = require("express");
 const app = express();
 const port = 4242;
 
-const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
-const cartRoutes = require("./DB_Buyer/cartsqlitedb");
-const venderRoutes = require("./DB_Vender/vendersqlitedb");
-const productsRoutes = require("./DB_Vender/productssqlitedb");
+// const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
+// const cartRoutes = require("./DB_Buyer/cartsqlitedb");
+// const venderRoutes = require("./DB_Vender/vendersqlitedb");
+// const productsRoutes = require("./DB_Vender/productssqlitedb");
+
+// app.use(buyerRoutes);
+// app.use(cartRoutes);
+// app.use(venderRoutes);
+// app.use(productsRoutes);
+
+
+const { app: buyerApp } = require("./DB_Buyer/buyersqlitedb");
+const { app: cartApp } = require("./DB_Buyer/cartsqlitedb");
+const { app: venderApp } = require("./DB_Vender/vendersqlitedb");
+const { app: productsApp } = require("./DB_Vender/productssqlitedb");
 
 app.use(cors());
-app.use(buyerRoutes);
-app.use(cartRoutes);
-app.use(venderRoutes);
-app.use(productsRoutes);
+app.use(buyerApp);
+app.use(cartApp);
+app.use(venderApp);
+app.use(productsApp);
+
 
 const stripe = require("stripe")(
   // This is your test secret API key.

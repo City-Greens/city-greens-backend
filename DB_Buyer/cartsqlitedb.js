@@ -67,4 +67,4 @@ app.delete('/carts/:id', (req, res) => {
     });
 });
 
-module.exports = {app,db};
+module.exports = { app, db };
