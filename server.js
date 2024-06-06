@@ -116,21 +116,23 @@ app.post("/get-account", async (req, res) => {
 });
 
 app.post("/checkout-session", async (req, res) => {
-  const { line_items, customer_id } = req.body;
+  const { line_items, customer_id, vendor_id } = req.body;
   console.log(line_items, customer_id);
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: line_items,
-      mode: "payment",
-      success_url: `${req.headers.origin}/success`,
-      return_url: `${req.headers.origin}/return`,
-    });
+    const session = await stripe.checkout.sessions.create(
+      {
+        payment_method_types: ["card"],
+        line_items: line_items,
+        mode: "payment",
+        success_url: `${req.headers.origin}/cart`,
+      },
+      {
+        stripeAccount: vendor_id,
+      },
+    );
 
-    console.log("session", session);
-
-    res.json({ session });
+    res.json(session);
   } catch (error) {
     res.status(500).send({ error: error.message });
   }
