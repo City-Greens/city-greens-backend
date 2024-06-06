@@ -93,13 +93,26 @@ app.get("/all-products", async (req, res) => {
 
         const productsWithPrices = await Promise.all(
           productsResponse.data.map(async (product) => {
-            const priceDetails = await stripe.prices.retrieve(
-              product.default_price,
-              { stripeAccount: account.id },
-            );
+            let formattedPrice = "N/A";
+            if (product.default_price) {
+              try {
+                const priceDetails = await stripe.prices.retrieve(
+                  product.default_price,
+                  { stripeAccount: account.id },
+                );
+                if (priceDetails) {
+                  formattedPrice = `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`;
+                }
+              } catch (error) {
+                console.error(
+                  `Error fetching price for product ${product.id}:`,
+                  error,
+                );
+              }
+            }
             return {
               ...product,
-              price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+              price: formattedPrice,
               stripeAccount: account.id,
               business_name: account.business_profile.name,
             };
@@ -111,7 +124,10 @@ app.get("/all-products", async (req, res) => {
     );
 
     const flattenedProducts = allProducts.flat();
-    res.json(flattenedProducts);
+    const finalProducts = flattenedProducts.filter(
+      (product) => product.active || product.default_price !== null,
+    );
+    res.json(finalProducts);
   } catch (error) {
     console.error("Error fetching products or prices:", error);
     res.status(500).json({ error: "Failed to fetch products or prices" });

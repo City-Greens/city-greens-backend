@@ -58,14 +58,42 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
-app.delete("/delete-product", async (req, res) => { 
-  const product = req.body;
-  console.log(product);
-  const deleted = await stripe.products.del(product.id, { 
-    stripeAccount: product.stripeAccount,
-  });
-  res.send(deleted.deleted);
+app.delete("/delete-product", async (req, res) => {
+  try {
+    const product = req.body;
 
+    // Step 1: List all prices for the product
+    const updated = await stripe.products.update(
+      product.id,
+      {
+        active: false,
+        default_price: null,
+      },
+      {
+        stripeAccount: product.stripeAccount,
+      },
+    );
+
+    // Step 3: Delete the product
+    res.send(true);
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    res.status(500).send({ error: error.message });
+  }
+});
+
+app.post("/get-account", async (req, res) => {
+  try {
+    const account = await stripe.accounts.retrieve(req.body.accountID);
+    res.send(account);
+  } catch (error) {
+    console.error(
+      "An error occurred when calling the Stripe API to retrieve an account",
+      error,
+    );
+    res.status(500);
+    res.send({ error: error.message });
+  }
 });
 
 app.post("/get-products", async (req, res) => {
@@ -84,80 +112,46 @@ app.post("/get-products", async (req, res) => {
 
     // Function to fetch price details for a given price ID
     async function fetchPriceDetails(priceId) {
-      const price = await stripe.prices.retrieve(priceId, {
-        stripeAccount: id,
-      });
-      return price;
+      if (priceId) {
+        const price = await stripe.prices.retrieve(priceId, {
+          stripeAccount: id,
+        });
+        return price;
+      }
+      return null;
     }
 
     // Fetch price details for each product and add formatted price
     const productsWithPrices = await Promise.all(
       products.data.map(async (product) => {
-        const priceDetails = await fetchPriceDetails(product.default_price);
+        let formattedPrice = "N/A";
+        if (product.default_price) {
+          const priceDetails = await fetchPriceDetails(product.default_price);
+          if (priceDetails) {
+            formattedPrice = `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`;
+          }
+        }
         return {
           ...product,
-          price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+          price: formattedPrice,
           stripeAccount: id,
         };
       }),
     );
-    res.send(productsWithPrices);
-  } catch (error) {
-    console.error("Error fetching products:", error);
-    res.status(500).send({ error: "Failed to fetch products" });
-  }
-});
 
-app.post("/get-account", async (req, res) => {
-  try {
-    const account = await stripe.accounts.retrieve(req.body.accountID);
-    res.send(account);
-  } catch (error) {
-    console.error(
-      "An error occurred when calling the Stripe API to retrieve an account",
-      error,
+    finalarray = productsWithPrices.filter(
+      (product) => product.default_price !== null,
     );
-    res.status(500);
-    res.send({ error: error.message });
+
+    res.send(finalarray);
+  } catch (error) {
+    console.error("Error fetching products or prices:", error);
+    res.status(500).send({ error: "Failed to fetch products or prices" });
   }
 });
-
-//BUG: THIS ROUTE IS NOT WORKING
-// app.post("/checkout-session", async (req, res) => {
-//   const { line_items, customer_id } = req.body;
-//   console.log(req.body);
-//   try {
-//     const session = await stripe.checkout.sessions.create({
-//       payment_method_types: ["card"],
-//       line_items: line_items.map((item) => ({
-//         price: item.price,
-//         quantity: item.quantity,
-//       })),
-//       mode: "payment",
-//       success_url: `${req.headers.origin}/cart`,
-//       customer: customer_id,
-//     });
-//     for (const item of line_items) {
-//       await stripe.paymentIntents.create({
-//         amount: item.amount,
-//         currency: "usd",
-//         customer: customer_id,
-//         payment_method_types: ["card"],
-//         transfer_data: {
-//           destination: item.vendor_id,
-//         },
-//       });
-//     }
-//     res.json({ id: session.id });
-//   } catch (error) {
-//     console.error("Error creating checkout session:", error);
-//     res.status(500).send({ error: "Failed to create checkout session" });
-//   }
-// });
 
 app.post("/checkout-session", async (req, res) => {
   const { line_items, vendor_id } = req.body;
-  console.log(vendor_id);
 
   //TODO: add customer email to the session
   try {
@@ -173,7 +167,6 @@ app.post("/checkout-session", async (req, res) => {
       },
     );
 
-    console.log(session);
     res.json(session);
   } catch (error) {
     console.error("Error creating checkout session:", error);
