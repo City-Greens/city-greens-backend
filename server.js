@@ -1,7 +1,12 @@
+require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const app = express();
 const port = 4242;
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const stripe = require("stripe")(STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 // const buyerRoutes = require("./DB_Buyer/buyersqlitedb");
 // const cartRoutes = require("./DB_Buyer/cartsqlitedb");
@@ -12,7 +17,7 @@ const port = 4242;
 // app.use(cartRoutes);
 // app.use(venderRoutes);
 // app.use(productsRoutes);
-
+//
 
 const { app: buyerApp } = require("./DB_Buyer/buyersqlitedb");
 const { app: cartApp } = require("./DB_Buyer/cartsqlitedb");
@@ -24,15 +29,6 @@ app.use(buyerApp);
 app.use(cartApp);
 app.use(venderApp);
 app.use(productsApp);
-
-
-const stripe = require("stripe")(
-  // This is your test secret API key.
-  "sk_test_51PNQggKVH5eLCsVpBp7cYHZSEif0JLfzFGSVlELXnMTWrnZLpoTN4UBBZRWNLJQujcA6AsRL2SYqkkDoohZyGpMf00sGpJZdzK",
-  {
-    apiVersion: "2023-10-16",
-  },
-);
 
 app.use(express.static("dist"));
 app.use(express.json());
@@ -60,12 +56,6 @@ app.post("/account_link", async (req, res) => {
     res.status(500);
     res.send({ error: error.message });
   }
-});
-
-app.post("/add-product", async (req, res) => {
-  const product = req.body;
-
-  console.log(product);
 });
 
 app.post("/get-products", async (req, res) => {
@@ -121,10 +111,44 @@ app.post("/get-account", async (req, res) => {
   }
 });
 
-app.post("/checkout-session", async (req, res) => {
-  const { line_items, customer_id, vendor_id } = req.body;
-  console.log(line_items, customer_id);
+//BUG: THIS ROUTE IS NOT WORKING
+// app.post("/checkout-session", async (req, res) => {
+//   const { line_items, customer_id } = req.body;
+//   console.log(req.body);
+//   try {
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items: line_items.map((item) => ({
+//         price: item.price,
+//         quantity: item.quantity,
+//       })),
+//       mode: "payment",
+//       success_url: `${req.headers.origin}/cart`,
+//       customer: customer_id,
+//     });
+//     for (const item of line_items) {
+//       await stripe.paymentIntents.create({
+//         amount: item.amount,
+//         currency: "usd",
+//         customer: customer_id,
+//         payment_method_types: ["card"],
+//         transfer_data: {
+//           destination: item.vendor_id,
+//         },
+//       });
+//     }
+//     res.json({ id: session.id });
+//   } catch (error) {
+//     console.error("Error creating checkout session:", error);
+//     res.status(500).send({ error: "Failed to create checkout session" });
+//   }
+// });
 
+app.post("/checkout-session", async (req, res) => {
+  const { line_items, vendor_id } = req.body;
+  console.log(vendor_id);
+
+  //TODO: add customer email to the session
   try {
     const session = await stripe.checkout.sessions.create(
       {
@@ -138,8 +162,10 @@ app.post("/checkout-session", async (req, res) => {
       },
     );
 
+    console.log(session);
     res.json(session);
   } catch (error) {
+    console.error("Error creating checkout session:", error);
     res.status(500).send({ error: error.message });
   }
 });
