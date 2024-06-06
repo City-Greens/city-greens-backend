@@ -58,6 +58,16 @@ app.post("/account_link", async (req, res) => {
   }
 });
 
+app.delete("/delete-product", async (req, res) => { 
+  const product = req.body;
+  console.log(product);
+  const deleted = await stripe.products.del(product.id, { 
+    stripeAccount: product.stripeAccount,
+  });
+  res.send(deleted.deleted);
+
+});
+
 app.post("/get-products", async (req, res) => {
   const id = req.body.id;
 
@@ -87,6 +97,7 @@ app.post("/get-products", async (req, res) => {
         return {
           ...product,
           price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+          stripeAccount: id,
         };
       }),
     );
