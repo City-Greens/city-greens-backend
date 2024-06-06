@@ -1,43 +1,121 @@
+require("dotenv").config();
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+const stripe = require("stripe")(STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 const app = express();
 app.use(bodyParser.json());
 
 const db = new sqlite3.Database(":memory:");
 
-app.post("/add-product", (req, res) => {
-  //NOTE: grab from front end
-  const { name, quantity, price, vendor_id } = req.body;
-  console.log("You are here!", req.body);
-  // SEND TO STRIPE
-  // GET BACK FROM STRIPE
-  // ADD THAT OBJECT TO DB WITH ADDITION default_price
-  // if (!name || !quantity || !price || !vendor_id) {
-  //   return res
-  //     .status(400)
-  //     .json({ error: "Please provide name, quantity, price, and vendor_id" });
-  // }
-  // db.run(
-  //   "INSERT INTO products (name, quantity, price, vendor_id) VALUES (?, ?, ?, ?)",
-  //   [name, quantity, price, vendor_id],
-  //   function (err) {
-  //     if (err) {
-  //       return res.status(500).json({ error: err.message });
-  //     }
-  //     res.json({ id: this.lastID });
-  //   },
-  // );
+app.post("/add-product", async (req, res) => {
+  const { name, default_price_data, price, description, vendor_id } = req.body;
+  let finalProduct = {};
+  try {
+    let product = await stripe.products.create(
+      {
+        name: name,
+        default_price_data: default_price_data,
+        description: description,
+      },
+      {
+        stripeAccount: vendor_id,
+      },
+    );
+
+    product = {
+      ...product,
+      price: price,
+      vendor_id: vendor_id,
+    };
+    finalProduct = product;
+  } catch (error) {
+    console.error(
+      "An error occurred when calling the Stripe API to create a product",
+      error,
+    );
+    res.status(500);
+    res.send({ error: error.message });
+  }
+
+  db.run(
+    `
+  CREATE TABLE IF NOT EXISTS products (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    default_price_data TEXT,
+    description TEXT,
+    price REAL,
+    vendor_id INTEGER
+  )`,
+    (err) => {
+      if (err) {
+        console.error(err.message);
+      } else {
+        db.run(
+          "INSERT INTO products (name, default_price_data, description, price, vendor_id) VALUES (?, ?, ?, ?, ?)",
+          [name, default_price_data, description, price, vendor_id],
+          function (err) {
+            if (err) {
+              console.log("Error", err);
+              return res.status(500).json({ error: err.message });
+            }
+            res.json({ id: this.lastID });
+          },
+        );
+      }
+    },
+  );
 });
 
-app.get("/products", (req, res) => {
-  db.all("SELECT * FROM products", [], (err, rows) => {
-    if (err) {
-      return res.status(500).json({ error: err.message });
-    }
-    res.json({ products: rows });
-  });
+app.get("/all-products", async (req, res) => {
+  //TODO: Make persistent
+  // db.all("SELECT * FROM products", [], (err, rows) => {
+  //   if (err) {
+  //     return res.status(500).json({ error: err.message });
+  //   }
+  //   res.json({ products: rows });
+  // });
+  try {
+    const accountsResponse = await stripe.accounts.list({ limit: 100 });
+    const accounts = accountsResponse.data;
+
+    const allProducts = await Promise.all(
+      accounts.map(async (account) => {
+        const productsResponse = await stripe.products.list(
+          { limit: 100 },
+          { stripeAccount: account.id },
+        );
+
+        const productsWithPrices = await Promise.all(
+          productsResponse.data.map(async (product) => {
+            const priceDetails = await stripe.prices.retrieve(
+              product.default_price,
+              { stripeAccount: account.id },
+            );
+            return {
+              ...product,
+              price: `${(priceDetails.unit_amount / 100).toFixed(2)} ${priceDetails.currency.toUpperCase()}`,
+              stripeAccount: account.id,
+              business_name: account.business_profile.name,
+            };
+          }),
+        );
+
+        return productsWithPrices;
+      }),
+    );
+
+    const flattenedProducts = allProducts.flat();
+    res.json(flattenedProducts);
+  } catch (error) {
+    console.error("Error fetching products or prices:", error);
+    res.status(500).json({ error: "Failed to fetch products or prices" });
+  }
 });
 
 app.get("/products/:id", (req, res) => {
