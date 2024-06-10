@@ -1,14 +1,20 @@
 {
   "name": "city-greens-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend server for the City Greens app providing weather, camping information, and alerts.",
   "main": "index.js",
   "scripts": {
     "test": "jest test --coverage --verbose",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "express",
+    "weather",
+    "camping",
+    "alerts",
+    "backend"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -33,3 +39,4 @@
       "^.+\\.jsx?$": "babel-jest"
     }
   }
+}
