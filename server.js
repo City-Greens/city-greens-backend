@@ -260,12 +260,4 @@ app.post("/account", async (req, res) => {
   }
 });
 
-app.get("/*", (_req, res) => {
-  res.sendFile(__dirname + "/dist/index.html");
-});
-
-app.listen(port, () =>
-  console.log(
-    "Node server listening on port 4242! Visit http://localhost:4242 in your browser.",
-  ),
-);
+app.listen(port, () => console.log("Server started!"));
