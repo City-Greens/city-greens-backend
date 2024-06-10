@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest test --coverage --verbose",
+    "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],
@@ -32,4 +33,3 @@
       "^.+\\.jsx?$": "babel-jest"
     }
   }
-}
